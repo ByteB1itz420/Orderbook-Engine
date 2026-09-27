@@ -1,9 +1,9 @@
 #pragma once
 
 #include <functional>
-#include <vector>
 
 #include "book/order_book.hpp"
+#include "book/trade.hpp"
 #include "feed/events.hpp"
 
 namespace lob {
@@ -16,7 +16,7 @@ namespace lob {
 // timestamps inside the engine.
 class ReplayEngine {
   public:
-    using TradeHandler = std::function<void(TimestampNs, Price, Quantity)>;
+    using TradeHandler = std::function<void(const Trade&)>;
 
     ReplayEngine() = default;
 
@@ -24,8 +24,12 @@ class ReplayEngine {
     void process(const Event& event);
 
     const OrderBook& book() const { return book_; }
+    OrderBook& book() { return book_; }
 
-    void setTradeHandler(TradeHandler handler) { on_trade_ = std::move(handler); }
+    // Called for every trade the matching loop produces. Feed-reported
+    // executions (ExecutionEvent) do NOT fire this; they are the recorded
+    // truth to validate against, not our own output.
+    void setTradeHandler(TradeHandler handler);
 
   private:
     OrderBook book_;

@@ -16,12 +16,22 @@ class IParser {
     virtual std::optional<Event> parseLine(std::string_view line) = 0;
 };
 
-// TODO(ayush, milestone 1 cont.): LobsterParser : IParser.
-// Input format: LOBSTER message CSV
-//   time, type, order_id, size, price, direction
-// Map message types: 1 -> AddOrderEvent, 3 -> CancelOrderEvent (full delete),
-// 2/4/5 -> ExecutionEvent variants (see the LOBSTER readme in data/),
-// direction +1 buy / -1 sell, price in 1/10000 dollars (already ticks x100).
-// Start with the free samples: https://lobsterdata.com/info/DataSamples.php
+// Parser for the LOBSTER message CSV.
+//
+// One line per message: time, type, order_id, size, price, direction
+//   time:      seconds after midnight, decimal (e.g. 34200.000000001)
+//   type:      1 new limit order, 2 partial cancel, 3 full delete,
+//              4 visible execution, 5 hidden execution, 7 trading halt
+//   order_id:  exchange-assigned id
+//   size:      shares
+//   price:     dollars * 10000 (already integer ticks)
+//   direction: 1 buy, -1 sell (for type 4/5: side of the RESTING order)
+//
+// Note the LOBSTER quirk: a marketable incoming order never appears as a
+// type 1. You only see its effect as a type 4 against the resting order.
+class LobsterParser : public IParser {
+  public:
+    std::optional<Event> parseLine(std::string_view line) override;
+};
 
 }  // namespace lob

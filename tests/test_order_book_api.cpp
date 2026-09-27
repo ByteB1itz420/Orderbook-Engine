@@ -68,13 +68,3 @@ TEST_CASE("duplicate ids are rejected", "[book]") {
     REQUIRE_FALSE(book.addOrder(limit(1, Side::Buy, 10000, 10)));
     REQUIRE(book.restingOrderCount() == 1);
 }
-
-// ---------------------------------------------------------------------------
-// TODO(ayush): matching tests. Write these BEFORE writing match(). Suggested:
-//   - a crossing limit order fills at the RESTING price, not its own
-//   - FIFO: two resting orders at one level fill in arrival order
-//   - partial fill leaves the remainder resting
-//   - Ioc fills what it can and drops the rest; Market sweeps multiple levels
-//   - invariant: after any sequence, best bid < best ask
-//   - invariant: the live book equals a rebuild from the event log
-// ---------------------------------------------------------------------------

@@ -22,6 +22,14 @@ struct CancelOrderEvent {
     OrderId id{};
 };
 
+// Partial cancellation: reduce the resting order by `quantity` (LOBSTER
+// type 2). Full deletes come through as CancelOrderEvent.
+struct ReduceOrderEvent {
+    TimestampNs ts{};
+    OrderId id{};
+    Quantity quantity{};
+};
+
 struct ReplaceOrderEvent {
     TimestampNs ts{};
     OrderId id{};
@@ -29,16 +37,20 @@ struct ReplaceOrderEvent {
     Quantity new_quantity{};
 };
 
-// A trade reported by the feed itself (e.g. LOBSTER execution messages).
-// Distinct from trades our own matching loop produces; the replay engine
-// uses these to validate its own output against the recorded truth.
+// A trade reported by the feed itself (LOBSTER type 4/5). In LOBSTER the
+// aggressive order never appears as an add: you only see its effect on the
+// resting order. So a visible execution reduces the resting order, and a
+// hidden one does not touch the visible book. These are also the recorded
+// truth a matching engine can validate its own trades against.
 struct ExecutionEvent {
     TimestampNs ts{};
     OrderId id{};
     Price price{};
     Quantity quantity{};
+    bool hidden{};  // true = hidden execution, no visible-book effect
 };
 
-using Event = std::variant<AddOrderEvent, CancelOrderEvent, ReplaceOrderEvent, ExecutionEvent>;
+using Event = std::variant<AddOrderEvent, CancelOrderEvent, ReduceOrderEvent, ReplaceOrderEvent,
+                           ExecutionEvent>;
 
 }  // namespace lob

@@ -4,9 +4,10 @@ A C++20 limit order book and exchange event replay engine, built to be
 measured: strict price-time matching, deterministic replay of real market
 data, and honest p50 / p99 / p99.9 latency numbers.
 
-Status: **milestone 1** - repo skeleton, core types and container plumbing,
-CI with sanitizers. The matching loop is intentionally unimplemented (marked
-TODO) while the engine's owner writes it; see "Write the matcher" below.
+Status: **milestone 1 complete** - matching engine (strict price-time
+priority, limit/market/IOC, self-trade prevention), LOBSTER parser, replay
+engine with determinism guarantees, and CI with sanitizers. New to order
+books? Start with docs/walkthrough.md.
 
 ## Layout
 
@@ -36,16 +37,10 @@ cmake -B build-san -DLOB_SANITIZERS=ON -DCMAKE_BUILD_TYPE=Debug
 cmake --build build-san -j && ctest --test-dir build-san --output-on-failure
 ```
 
-## Write the matcher
+## Next up
 
-`src/book/order_book.cpp` has `OrderBook::match()` as a marked TODO with the
-full spec in the header. Suggested order:
-
-1. Write the matching tests first (stubs in `tests/test_order_book_api.cpp`).
-2. Implement the loop: sweep the opposite side best-to-worst at resting
-   prices, fill FIFO within a level, pop filled orders and empty levels.
-3. Handle leftovers: Limit rests, Ioc/Market drops.
-4. Run the invariant tests: best bid < best ask, rebuild-from-log equals live.
+Milestone 2 (per the requirements doc): the replay CLI (`replay --input ...
+--log ... --bench`), then measurement and optimization against this baseline.
 
 ## Rules of the road
 

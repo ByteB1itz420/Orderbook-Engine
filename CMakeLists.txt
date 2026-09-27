@@ -23,6 +23,7 @@ endif()
 # ---- Core library -----------------------------------------------------------
 add_library(lob_core
     src/book/order_book.cpp
+    src/feed/lobster_parser.cpp
     src/replay/replay_engine.cpp
 )
 target_include_directories(lob_core PUBLIC src)

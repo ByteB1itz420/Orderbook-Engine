@@ -1,37 +1,60 @@
 #pragma once
 
+#include <functional>
 #include <map>
 #include <optional>
 #include <unordered_map>
 
 #include "book/order.hpp"
 #include "book/price_level.hpp"
+#include "book/trade.hpp"
 #include "book/types.hpp"
 
 namespace lob {
 
-// A single-side view of the book: best bid / best ask plus aggregate depth.
+// A single-side view of the book: best price plus aggregate resting quantity.
 struct TopOfBook {
     Price price{};
     Quantity quantity{};
 };
 
+// Self-trade prevention. When an incoming order would match a resting order
+// from the same owner:
+//   None:          trade anyway (some venues allow it)
+//   CancelResting: cancel the resting order, keep processing the incoming one
+enum class SelfTradeMode { None, CancelResting };
+
 // The limit order book for one symbol.
 //
-// Milestone 1 state: the container plumbing is implemented on the naive
-// baseline structures (std::map of price -> PriceLevel, plus an id index).
-// The matching loop is intentionally left as a marked TODO for the owner to
-// write; see match() in order_book.cpp.
+// Matching rule (strict price-time priority):
+//   - the best price trades first; within one price, the oldest order trades
+//     first (FIFO per PriceLevel)
+//   - trades print at the RESTING order's price
+//   - Limit leftovers rest; Market and IOC leftovers are dropped
+//
+// The container layer is the deliberate naive baseline (std::map of price ->
+// PriceLevel plus an id index). The optimized engine is benchmarked against
+// this baseline in a later milestone.
 class OrderBook {
   public:
+    using TradeHandler = std::function<void(const Trade&)>;
+
     OrderBook() = default;
 
-    // Insert an order. Limit orders rest on the book after any matching.
-    // Returns true if the id was new and the order was accepted.
+    void setTradeHandler(TradeHandler handler) { on_trade_ = std::move(handler); }
+    void setSelfTradeMode(SelfTradeMode mode) { stp_ = mode; }
+
+    // Insert an order. Matching runs first; a Limit remainder rests on the
+    // book, a Market/IOC remainder is dropped. Returns false for a duplicate
+    // id or non-positive quantity.
     bool addOrder(const Order& order);
 
     // Cancel a resting order by id. Returns false if the id is not resting.
     bool cancelOrder(OrderId id);
+
+    // Reduce a resting order's quantity (partial cancel / feed-reported
+    // execution). Removes the order when the reduction covers it.
+    bool reduceOrder(OrderId id, Quantity delta);
 
     // Amend price and/or quantity of a resting order. Loses time priority
     // (implemented as cancel + re-add, the common exchange rule).
@@ -49,22 +72,8 @@ class OrderBook {
     std::size_t restingOrderCount() const { return index_.size(); }
 
   private:
-    // Sweep the opposite side while `incoming` can fill. Emits trades.
-    //
-    // TODO(ayush): IMPLEMENT THE MATCHING LOOP. This is the heart of the
-    // project. Price-time priority:
-    //   1. While the incoming order has quantity left and the opposite side
-    //      has a level that crosses its price (for Market: any level):
-    //        - take the front order at the best opposite level (time priority)
-    //        - fill min(incoming.quantity, resting.quantity) on both sides
-    //        - record a trade (price of the RESTING order, aggressor = incoming)
-    //        - pop fully filled resting orders; drop empty levels
-    //   2. Self-trade prevention: if the resting order belongs to the same
-    //      owner (needs an owner field) and STP mode is cancel-resting,
-    //      cancel the resting order instead of filling. v1: skip owners.
-    //   3. Whatever is left: Limit rests on the book; Ioc/Market is dropped.
-    //   Write the invariant tests FIRST (tests/test_order_book_api.cpp has
-    //   stubs): best bid < best ask, book equals rebuild from the event log.
+    // Sweep the opposite side while `incoming` can still fill. Emits a Trade
+    // per fill through on_trade_. See the class comment for the rules.
     void match(Order& incoming);
 
     using Levels = std::map<Price, PriceLevel>;  // naive baseline structure
@@ -75,6 +84,9 @@ class OrderBook {
     // id -> (side, price) so cancel/replace find a resting order in O(log n)
     // without scanning. The optimized engine replaces this with pool pointers.
     std::unordered_map<OrderId, std::pair<Side, Price>> index_;
+
+    TradeHandler on_trade_;
+    SelfTradeMode stp_{SelfTradeMode::None};
 
     static Levels& sideLevels(OrderBook& book, Side side) {
         return side == Side::Buy ? book.bids_ : book.asks_;

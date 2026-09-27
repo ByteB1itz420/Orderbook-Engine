@@ -26,6 +26,10 @@ struct Order {
     Price price{};       // ticks; ignored for Market orders
     Quantity quantity{}; // remaining (unfilled) quantity
     TimestampNs timestamp{};
+    // Owner tag for self-trade prevention. 0 = anonymous (never STP-matched).
+    // Real exchanges use the firm/account id; one back-test session can just
+    // use 1 for "my strategy" and leave everything else 0.
+    std::uint64_t owner{};
 };
 
 }  // namespace lob

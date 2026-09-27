@@ -50,6 +50,27 @@ class PriceLevel {
     Order& front() { return queue_.front(); }
     const Order& front() const { return queue_.front(); }
 
+    // Reduce an order's quantity by `delta` (LOBSTER partial cancel / visible
+    // execution). Removes the order when delta >= its remaining quantity.
+    // Returns true when the order was found; sets `removed` when it was
+    // fully consumed.
+    bool reduce(OrderId id, Quantity delta, bool& removed) {
+        assert(delta > 0);
+        removed = false;
+        for (auto it = queue_.begin(); it != queue_.end(); ++it) {
+            if (it->id == id) {
+                if (delta >= it->quantity) {
+                    queue_.erase(it);
+                    removed = true;
+                } else {
+                    it->quantity -= delta;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Fill the front order by `filled` quantity, popping it when fully filled.
     // Returns the order id that was (partially or fully) filled.
     OrderId fillFront(Quantity filled) {
