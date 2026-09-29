@@ -4,6 +4,8 @@
 #include <map>
 #include <optional>
 #include <unordered_map>
+#include <vector>
+#include <cstddef>
 
 #include "book/order.hpp"
 #include "book/price_level.hpp"
@@ -48,6 +50,14 @@ class OrderBook {
     // book, a Market/IOC remainder is dropped. Returns false for a duplicate
     // id or non-positive quantity.
     bool addOrder(const Order& order);
+
+    // Historical outbound feed: record a visible resting order without matching.
+    // The aggressor was already processed by the venue, not supplied here.
+    bool addObservedOrder(const Order& order);
+
+    struct LevelView { Price price; Quantity quantity; std::size_t orders; };
+    std::vector<LevelView> depth(Side side, std::size_t limit) const;
+    bool checkInvariants() const;
 
     // Cancel a resting order by id. Returns false if the id is not resting.
     bool cancelOrder(OrderId id);

@@ -76,7 +76,7 @@ trades) as a **feed**. If you record the feed, you can **replay** it later
 through your own book and rebuild exactly what the exchange's book looked
 like. That is how trading firms test strategies on real market history.
 
-LOBSTER is a popular academic dataset of NASDAQ feed recordings. Its message
+LOBSTER supplies academic reconstructions from historical Nasdaq ITCH messages. Its message
 file is a CSV: `time, type, order_id, size, price, direction`. Our
 `LobsterParser` (src/feed/lobster_parser.cpp) turns each line into a typed
 `Event` (src/feed/events.hpp), and the `ReplayEngine`
@@ -104,9 +104,8 @@ market event):
 
 - **Integer ticks, never doubles.** Doubles have rounding error and can make
   two runs disagree; integers are exact and fast to compare.
-- **No allocation per event.** Orders come from a preallocated pool
-  (src/book/order_pool.hpp) instead of `new` per order; memory allocation is
-  slow and has unpredictable latency spikes.
+- **Allocation is not yet controlled.** The current book uses standard containers that can allocate.
+  `OrderPool` is a standalone candidate, not yet wired into the book.
 - **The right asymptotics.** Best bid/ask must be O(1) to read; the book
   keeps prices in sorted order so the best level is always at the edge.
 
@@ -166,18 +165,18 @@ some venues keep priority for qty-*decreases*, which is a fine v2 feature.
 **Q: How do you guarantee determinism?**
 Integer ticks, hand-parsed integer nanosecond timestamps (never via double),
 no wall-clock reads in the engine, no iteration over unordered containers,
-and a CI test that replays the same file twice and diffs the output.
+and a test that computes the same book summary twice. A full CLI byte-log
+comparison is still to be added.
 
 **Q: Why a pool for orders?**
-`new`/`delete` per order costs hundreds of nanoseconds with jitter from the
-allocator, which shows up in p99+. A preallocated pool makes acquisition
-O(1) and predictable, keeps orders cache-local, and removes allocation from
-the hot path entirely once warmed up.
+A pool can avoid repeated allocator calls and stabilize node addresses, but
+we need to integrate it and measure the result. The current `OrderBook` does
+not use `OrderPool`, so it would be dishonest to claim zero allocations.
 
 **Q: How is this different from the optimized version you would build?**
 Baseline: std::map (red-black tree, pointer-heavy, poor cache locality) and
-std::deque. Optimized: flat arrays indexed by tick price, pool-allocated
-orders with intrusive links, branch-light matching. The repo keeps the
+std::deque. Proposed optimization: pool-allocated orders with intrusive links and a
+flat ID lookup. We will retain it only if tests and measurements justify it. The repo keeps the
 baseline so the optimization delta is measurable.
 
 **Q: What is self-trade prevention and why does it exist?**
@@ -190,3 +189,34 @@ owner tags match.
 Per-order std::deque nodes (cache), the O(k) cancel within a level, and no
 support for multiple symbols. Also real feeds arrive over multicast with
 gap recovery; this engine assumes a complete, ordered recording.
+
+## 8. What we learned from the real LOBSTER sample
+
+The committed 10-line `data/lobster_sample.csv` was **hand-written** to test
+our parser. It was not historical market data. The official AMZN sample linked
+in `data/README.md` contains 269,748 paired message/depth rows. A tempting but
+wrong test is: start an empty book at its first message and demand that our
+entire ten-level depth match every published row. In a first trial, only 148
+rows matched. Why? The recording begins with orders already resting, and the
+requested ten-level feed filters events to what affects displayed depth. We
+cannot invent the missing earlier order IDs or unseen deeper orders.
+
+A defensible narrower check compares the *change in size at the event's price*
+when that price is displayed in consecutive snapshots. On this AMZN sample,
+162,283 events were eligible and all 162,283 size deltas matched; 2,444 hidden
+executions left the visible snapshot unchanged. The other 105,020 transitions
+include boundary changes and other excluded cases. Reproduce locally with
+`python3 src/replay/validate_depth.py --messages ... --orderbook ...`.
+This check confirms published message/depth consistency within that window,
+not that our full book is reconstructed or that our matcher regenerated
+Nasdaq trades. The C++ CLI reports its full-depth mismatches rather than
+burying them.
+
+**Interview question: Why does your full-depth replay disagree?**
+Because the sample starts with an unknown book and only exposes changes in
+its requested depth. I report a narrower event-price delta check with its
+eligible/excluded denominators and do not claim an exchange-exact book.
+
+**Interview question: Does your historical replay test your matching loop?**
+No. ITCH-derived events describe what already happened. The simulator's
+incoming orders and independent matching tests exercise the matching loop.

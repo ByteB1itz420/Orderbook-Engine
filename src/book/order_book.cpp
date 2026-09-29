@@ -1,9 +1,12 @@
 #include "book/order_book.hpp"
 
+#include <limits>
+#include <unordered_set>
+
 namespace lob {
 
 bool OrderBook::addOrder(const Order& order) {
-    if (order.quantity <= 0) return false;
+    if (order.quantity <= 0 || (order.type != OrderType::Market && order.price <= 0)) return false;
     if (index_.find(order.id) != index_.end()) return false;
 
     // Every incoming order tries to trade first. Only a Limit remainder rests.
@@ -17,6 +20,17 @@ bool OrderBook::addOrder(const Order& order) {
     (void)inserted;
     it->second.pushBack(incoming);
     index_.emplace(incoming.id, std::pair{incoming.side, incoming.price});
+    return true;
+}
+
+bool OrderBook::addObservedOrder(const Order& order) {
+    if (order.type != OrderType::Limit || order.price <= 0 || order.quantity <= 0 ||
+        index_.contains(order.id)) return false;
+    Levels& levels = sideLevels(*this, order.side);
+    auto [it, inserted] = levels.try_emplace(order.price, order.price);
+    (void)inserted;
+    it->second.pushBack(order);
+    index_.emplace(order.id, std::pair{order.side, order.price});
     return true;
 }
 
@@ -50,7 +64,7 @@ bool OrderBook::reduceOrder(OrderId id, Quantity delta) {
 
 bool OrderBook::replaceOrder(OrderId id, Price new_price, Quantity new_quantity) {
     const auto found = index_.find(id);
-    if (found == index_.end()) return false;
+    if (found == index_.end() || new_price <= 0 || new_quantity <= 0) return false;
     const Side side = found->second.first;
     if (!cancelOrder(id)) return false;
     Order replacement{};
@@ -73,6 +87,36 @@ std::optional<TopOfBook> OrderBook::bestAsk() const {
     if (asks_.empty()) return std::nullopt;
     const auto& [price, level] = *asks_.begin();
     return TopOfBook{price, level.totalQuantity()};
+}
+
+std::vector<OrderBook::LevelView> OrderBook::depth(Side side, std::size_t limit) const {
+    std::vector<LevelView> result;
+    const Levels& levels = (side == Side::Buy) ? bids_ : asks_;
+    result.reserve(std::min(limit, levels.size()));
+    if (side == Side::Buy) {
+        for (auto it = levels.rbegin(); it != levels.rend() && result.size() < limit; ++it)
+            result.push_back({it->first, it->second.totalQuantity(), it->second.orderCount()});
+    } else {
+        for (auto it = levels.begin(); it != levels.end() && result.size() < limit; ++it)
+            result.push_back({it->first, it->second.totalQuantity(), it->second.orderCount()});
+    }
+    return result;
+}
+
+bool OrderBook::checkInvariants() const {
+    std::size_t count = 0;
+    for (const Side side : {Side::Buy, Side::Sell}) {
+        const Levels& levels = (side == Side::Buy) ? bids_ : asks_;
+        for (const auto& [price, level] : levels) {
+            if (price <= 0 || level.empty() || level.price() != price) return false;
+            if (level.totalQuantity() <= 0) return false;
+            count += level.orderCount();
+        }
+    }
+    if (count != index_.size()) return false;
+    // A historical feed may temporarily present crossed visible quotes. A matching
+    // simulator may not: this check is made separately in its tests.
+    return true;
 }
 
 void OrderBook::match(Order& incoming) {

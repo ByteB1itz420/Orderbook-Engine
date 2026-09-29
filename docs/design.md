@@ -19,8 +19,8 @@ feed file -> parser -> Event variant -> ReplayEngine -> OrderBook
 - **Determinism as a contract.** No wall-clock, no hash-order iteration.
   Two replays of the same file must produce byte-identical logs; CI diffs them.
 
-## What is intentionally missing (and who writes it)
-- `OrderBook::match()` - the matching loop. Owner-written; spec in
-  src/book/order_book.hpp, test stubs in tests/test_order_book_api.cpp.
-- `LobsterParser` - milestone 1 continuation; interface in src/feed/parser.hpp.
-- Replay CLI - milestone 4; stub in src/replay/main.cpp.
+## Current state
+- `OrderBook::match()` and `LobsterParser` were implemented in the M1 bundle.
+- The CLI now runs synthetic matching and observed historical replay.
+- The C++ book is still the standard-container baseline. `OrderPool` is not connected to it.
+- See STATUS.md for verified and pending work; do not infer status from old milestones.
