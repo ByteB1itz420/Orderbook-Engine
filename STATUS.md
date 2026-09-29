@@ -33,7 +33,7 @@ Use **Present in M1**, **Partial**, **Not started**, or **Blocked**. A feature i
 ### Repo, report, and demo - Partial
 
 - **Present:** Private GitHub repo with M1 source and PLAN.md/STATUS.md at `729d64a`; M1 ZIP remains in Drive. Local CLI, semantics, and validation changes are not yet pushed.
-- **Open:** Continue tested incremental pushes under Ayush's author identity alone and tell him what changed. Finish the one-command CLI, reproducibility artifacts and audit script, honest `REPORT.md`, and a visually verified depth-animation demo. Use a clearly labeled synthetic public trace unless historical-sample display/redistribution rights are verified. Do not call it a live exchange feed. No deployment or report has been verified for this project.
+- **Open:** Continue tested incremental pushes under Ayush's author identity alone and tell him what changed. Finish the one-command CLI, reproducibility artifacts and audit script, honest `REPORT.md`, and a visually verified depth-animation demo. Use a clearly labeled synthetic public trace unless historical-sample display/redistribution rights are verified. Do not call it a live exchange feed. REPORT.md and a raw benchmark CSV now exist locally, but are pending push; no deployment has been verified.
 
 ### Learning notes - Partial
 
@@ -55,4 +55,6 @@ Update this file whenever a project file, implementation, test result, benchmark
 | 2026-09-29 | First GitHub push: M1 history plus approved plan/status at `729d64a`. | Readback from GitHub confirmed STATUS.md and private repository. |
 | 2026-09-29 | Local CLI and historical feed semantics built; sample-validation limits investigated. | Release and ASan/UBSan CTest 28/28; synthetic CLI emits three fills. Official AMZN 10-level zip SHA-256 `5cff62a609b27aef82285382ad646c4c2facc0a692a60bedda633de64c4aa54f`: 269,748 paired rows; naïve full-depth 148 exact, 269,600 mismatch. Eligible same-price deltas 162,283/162,283 exact; 2,444/2,444 hidden executions unchanged; 105,020 other transitions excluded. This check does not prove full reconstruction. Committed and pushed at `61b7940`. |
 
-| 2026-09-29 | Local compact-book alternative and benchmark protocol added; not yet pushed. | Fixed-capacity node/level arrays and flat ID table, seeded 5,000-event differential test. Release and ASan/UBSan: 30/30 passed. Early benchmark on agent-host hardware is mixed, with slower compact add/match; report requires committed method, reproducible raw output, allocation check, and user-machine rerun. |
+| 2026-09-29 | Local compact-book alternative and benchmark protocol added; not yet pushed. | Fixed-capacity node/level arrays and flat ID table, seeded 5,000-event differential test. Release and ASan/UBSan: 30/30 passed. Agent-host benchmark is now reported with committed method and raw CSV, with slower compact add/match; allocation check and user-machine rerun remain open. |
+
+| 2026-09-29 | Local measured report and reproducibility manifest prepared. | `REPORT.md`, `results/agent_host_benchmark.csv`, `results/manifest.sha256`, and `results/audit.py`; audit passes. Agent-host median p99 across five runs: baseline add/cancel/modify/match 135/131/268/93 ns; compact 273/62/221/177 ns. Measured host is not Ayush laptop; capacity and STP differ. Pending commit/push. |
