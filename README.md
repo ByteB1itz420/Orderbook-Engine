@@ -28,6 +28,10 @@ python3 src/replay/validate_depth.py --messages /path/to/AMZN_2012-06-21_3420000
 
 The C++ replay intentionally reports full-depth mismatches. This sample starts after an unknown book state and filters events by displayed levels; it cannot prove full reconstruction. The Python check verifies a narrower, eligible same-price visible-size delta. Official sample bytes are not committed here; the committed `data/lobster_sample.csv` is explicitly **hand-written**. See [docs/semantics.md](docs/semantics.md).
 
+## Interactive demo
+
+[Explore the synthetic order book](https://orderbook-engine-demo.vercel.app). The 15-event browser trace is labeled synthetic, with step/play/speed controls and bid/ask depth. The site is a visualization of our documented contract, not a live feed. Site source and a browser interaction test live under `site/`. It is deployed independently to Vercel; GitHub is the source of record, not an automatic deployment trigger.
+
 ## What exists and what does not
 
 The baseline uses `std::map` for sorted price levels, `std::deque` for FIFO within a level, and `std::unordered_map` to find the level by ID. Cancellation still scans that level. A standalone `OrderPool` is **not used** by the book, so there is **no zero-allocation hot-path claim**. No measured p50/p99/p99.9 numbers yet, no exchange parity, no market-impact or strategy-P&L claim. Planned optimization is judged against this readable baseline, not assumed faster.
