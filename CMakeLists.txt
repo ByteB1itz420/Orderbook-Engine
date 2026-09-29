@@ -23,6 +23,7 @@ endif()
 # ---- Core library -----------------------------------------------------------
 add_library(lob_core
     src/book/order_book.cpp
+    src/book/compact_book.cpp
     src/feed/lobster_parser.cpp
     src/replay/replay_engine.cpp
 )
@@ -44,3 +45,6 @@ if(BUILD_TESTING)
     FetchContent_MakeAvailable(Catch2)
     add_subdirectory(tests)
 endif()
+
+add_executable(lob_bench src/bench/bench.cpp)
+target_link_libraries(lob_bench PRIVATE lob_core)

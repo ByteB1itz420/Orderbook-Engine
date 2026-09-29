@@ -14,7 +14,7 @@ Use **Present in M1**, **Partial**, **Not started**, or **Blocked**. A feature i
 ### Matching engine and data structures - Partial
 
 - **Present in M1 ZIP:** C++20 `OrderBook` implementation and tests for price-time matching, partial fills, market/limit/IOC behavior, cancel, reduce, replace, and optional self-trade prevention. It uses integer prices, `std::map` price levels, `std::deque` FIFO orders, and `std::unordered_map` ID lookup as a clear baseline. An `OrderPool` class exists separately.
-- **Open:** Audit exact semantics and edge cases with Ayush; write the frozen contract; decide modify priority and capacity behavior; implement and compare stable pool-backed intrusive FIFO, flat ID lookup, and any justified cache-aware change. The current baseline's cancellation scans a price-level deque, and the pool is not integrated with the `OrderBook`; no verified zero-allocation hot-path claim.
+- **Open:** Audit exact semantics and edge cases with Ayush; write the frozen contract; decide modify priority and capacity behavior; implement and compare stable pool-backed intrusive FIFO, flat ID lookup, and any justified cache-aware change. The current baseline's cancellation scans a price-level deque, and the pool is not integrated with the `OrderBook`; no verified zero-allocation hot-path claim. A separate fixed-capacity `CompactBook` alternative has now been built locally and compared on 5,000 seeded mixed events against the baseline, with exact best quotes, counts, and trade records; benchmark evidence and broader contract parity remain open.
 
 ### Historical replay and synthetic flow - Partial
 
@@ -26,9 +26,9 @@ Use **Present in M1**, **Partial**, **Not started**, or **Blocked**. A feature i
 - **Present in M1 ZIP:** 26 declared Catch2 test cases, including matching, parser, hand-written replay, determinism, and randomized reference-model coverage; CMake test setup and CI workflow with GCC/Clang plus ASan/UBSan configuration.
 - **Open:** Run on Ayush's environment and check CI after a push. Add explicit per-event integrity/conservation invariants, failure-seed shrinking and saved golden traces, broader boundary cases, and actual historical paired-depth reconciliation. Report evidence and denominators rather than relying on the test count.
 
-### Benchmarks and optimization - Not started
+### Benchmarks and optimization - Partial
 
-- `src/bench/README.md` describes a planned harness, but no measurement implementation or measured results were found in the ZIP. Freeze workloads and method, benchmark baseline vs optimized variants on Ayush's hardware, and report p50/p99/p99.9, throughput, sample counts, repetitions, variability, allocations, and hardware/compiler details. No performance numbers belong on the resume before measurement.
+- A deterministic local harness and written protocol now exist in the working tree. The first agent-host runs show mixed results: the compact alternative improves cancel but is slower on other operations. These are not Ayush-laptop measurements or publishable headline latency yet. Freeze and commit the harness protocol before a reported run, record hardware/compiler and raw results, measure allocations separately, and later rerun on his laptop. No performance numbers belong on the resume before that validation.
 
 ### Repo, report, and demo - Partial
 
@@ -53,4 +53,6 @@ Update this file whenever a project file, implementation, test result, benchmark
 
 | 2026-09-29 | Fresh baseline sanitizer run and GitHub push credential prepared. | CMake Debug with ASan/UBSan in agent workspace: CTest 26/26 passed. GitHub classic token stored in a separate agent vault entry; no value committed. |
 | 2026-09-29 | First GitHub push: M1 history plus approved plan/status at `729d64a`. | Readback from GitHub confirmed STATUS.md and private repository. |
-| 2026-09-29 | Local CLI and historical feed semantics built; sample-validation limits investigated. | Release and ASan/UBSan CTest 28/28; synthetic CLI emits three fills. Official AMZN 10-level zip SHA-256 `5cff62a609b27aef82285382ad646c4c2facc0a692a60bedda633de64c4aa54f`: 269,748 paired rows; naïve full-depth 148 exact, 269,600 mismatch. Eligible same-price deltas 162,283/162,283 exact; 2,444/2,444 hidden executions unchanged; 105,020 other transitions excluded. This check does not prove full reconstruction. Local changes pending commit/push. |
+| 2026-09-29 | Local CLI and historical feed semantics built; sample-validation limits investigated. | Release and ASan/UBSan CTest 28/28; synthetic CLI emits three fills. Official AMZN 10-level zip SHA-256 `5cff62a609b27aef82285382ad646c4c2facc0a692a60bedda633de64c4aa54f`: 269,748 paired rows; naïve full-depth 148 exact, 269,600 mismatch. Eligible same-price deltas 162,283/162,283 exact; 2,444/2,444 hidden executions unchanged; 105,020 other transitions excluded. This check does not prove full reconstruction. Committed and pushed at `61b7940`. |
+
+| 2026-09-29 | Local compact-book alternative and benchmark protocol added; not yet pushed. | Fixed-capacity node/level arrays and flat ID table, seeded 5,000-event differential test. Release and ASan/UBSan: 30/30 passed. Early benchmark on agent-host hardware is mixed, with slower compact add/match; report requires committed method, reproducible raw output, allocation check, and user-machine rerun. |

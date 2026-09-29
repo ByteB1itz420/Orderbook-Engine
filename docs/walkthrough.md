@@ -220,3 +220,22 @@ eligible/excluded denominators and do not claim an exchange-exact book.
 **Interview question: Does your historical replay test your matching loop?**
 No. ITCH-derived events describe what already happened. The simulator's
 incoming orders and independent matching tests exercise the matching loop.
+
+## 9. A compact alternative, and why it might lose
+
+`CompactBook` is an alternative, not the default. It preallocates arrays of
+order nodes and price levels. Each level has a doubly linked list of its
+orders; a flat open-addressing ID table points to stable nodes. This makes
+cancel unlink in O(1) expected time after lookup. To keep the code small,
+price levels themselves form a sorted linked list: finding a new level is
+O(number of levels), so this design can actually lose to `std::map` on add.
+It has a fixed capacity and rejects excess orders. It omits the baseline's
+configurable self-trade prevention mode. Never claim it is uniformly faster.
+The differential test runs the same 5,000 seeded mixed events through both
+books and compares best quotes, resting counts, and emitted fills.
+
+**Interview question: Why not replace the baseline immediately?**
+Because an intrusive list helps cancellations, but a linear scan of price
+levels can hurt insertion and matching. The benchmark tests whether the
+tradeoff is worth the extra code. We keep a readable reference even if a
+particular operation gets faster.

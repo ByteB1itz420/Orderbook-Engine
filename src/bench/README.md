@@ -1,5 +1,7 @@
-# bench
+# Local benchmark protocol
 
-Benchmark harness lands in milestone 5. Plan: HDR histogram of per-event
-latency (add / cancel / execute), pinned core, warm-up of 1M events, and the
-naive std::map book kept as the baseline for the optimization delta.
+This harness compares the readable `std::map` + `std::deque` baseline with the fixed-capacity `CompactBook` on the **same deterministic operation sequence**. Before reading results, preserve this protocol and record its commit hash. Run `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j && ./build/lob_bench > results.csv`. The harness warms the book with 2,000 orders. Each of five runs measures 10,000 calls apiece for add, cancel, modify, and one-level market match. Each `steady_clock` call surrounds one operation; trace generation and CSV writing are outside that interval. `events_per_s_call_only` divides count by summed operation call times; it is **not** end-to-end replay throughput.
+
+Measurements include clock overhead and share CPU resources with the host. Capture CPU model, compiler, OS, optimization flags, run count, event mix, and raw CSV. Rerun in the same environment for both implementations; do not compare against a number taken on another machine. Percentiles use the nearest-rank method. p99.9 on 10,000 events is the 9,990th sorted sample. The default mixture is deliberately simple and does not represent a live venue's order mix, multi-symbol throughput, network path, or exchange tail latency. Core compact book has bounded preallocated storage, while the `std::function` trade callback and benchmark vectors are configured before measured events; a no-allocation claim still needs instrumentation.
+
+**Do not publish numbers from this agent workspace as Ayush's machine.** A later rerun on his laptop is required for a laptop-specific result. If compact is slower for some operations, show it: cancel's direct node lookup can help while linear level search or cache/clock effects can hurt add and match. There is no single magic structure.
