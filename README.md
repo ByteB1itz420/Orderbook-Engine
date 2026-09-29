@@ -2,6 +2,10 @@
 
 One-symbol C++20 limit order book with price-time matching, separate visible-book feed replay, tests, and an in-progress research/teaching plan. This is a simulator, **not** an exchange implementation or trading system. Read [PLAN.md](PLAN.md) for intended scope, [STATUS.md](STATUS.md) for verified progress, and [docs/walkthrough.md](docs/walkthrough.md) for a beginner-friendly explanation.
 
+## Architecture diagrams
+
+[View the Mermaid UML and data-flow diagrams](docs/architecture.md) for the matching book, observed-feed replay, and static synthetic demo. The diagrams distinguish the baseline from the separate compact alternative and mark the unused pool explicitly.
+
 ## Reproduce the core
 
 ```sh

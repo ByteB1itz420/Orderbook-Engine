@@ -1,11 +1,8 @@
 # Design notes
 
-## v1 architecture
-```
-feed file -> parser -> Event variant -> ReplayEngine -> OrderBook
-                                          |
-                                          +-> trade/audit log (deterministic)
-```
+## Current architecture
+
+See [the Mermaid diagrams](architecture.md) for the baseline matching book, separate bounded alternative, observed-feed replay, and static demo. The diagram labels the unused `OrderPool` and the independent Python delta checker so they cannot be mistaken for production engine components.
 
 ## Deliberate choices
 - **Integer ticks for prices.** Never doubles on the hot path: rounding bugs
