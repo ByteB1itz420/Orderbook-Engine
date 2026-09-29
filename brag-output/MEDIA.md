@@ -1,0 +1,3 @@
+# Video provenance
+
+`brag.mp4` is a 20-second Brag/Hyperframes composition recorded after the public demo went live. Its browser images are captures of the project's deployed synthetic explorer, recorded at events 5, 8, and 15. The underlying trace is checked against the C++ matcher in `tests/test_demo_trace.cpp`; this is a simulation, not a live exchange feed. The music bed is an original synthesized waveform produced for this project, not a bundled third-party track. `brag.jpg` is a settled event-8 frame and is baked into frame 0 of the MP4. The editable composition and source captures are in `composition/`.

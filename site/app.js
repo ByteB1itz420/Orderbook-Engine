@@ -25,7 +25,7 @@ function render(){
  $('spread').textContent=asks.length&&bids.length?money(asks[0].price-bids[0].price):'—';
  $('event-label').textContent=e?e.label:'Step into the book.';
  const type=$('event-type');type.className='event-type '+(e?.kind==='cancel'?'cancel':e?.side==='sell'?'sell':'');type.textContent=e?e.kind==='cancel'?'CANCEL':e.side==='buy'?'BUY ORDER':'SELL ORDER':'START';
- $('event-desc').textContent=e?e.kind==='cancel'?'The resting order leaves its price level. Its place in the queue is gone.':e.trades.length?`${e.trades.length} fill${e.trades.length>1?'s':''} at resting prices. The remaining size ${e.side==='buy'?'rests as a bid':'rests as an ask'} if not fully filled.`:`The order does not cross the spread. It joins the ${e.side==='buy'?'bid':'ask'} queue at its price.`:'Press play or step forward to see orders arrive.';
+ $('event-desc').textContent=e?e.kind==='cancel'?'The resting order leaves its price level. Its place in the queue is gone.':e.trades.length?`${e.trades.length} fill${e.trades.length>1?'s':''} at resting prices. ${e.trades.reduce((n,t)=>n+t.qty,0)===e.qty?'Fully filled; nothing remains on the book.':`The unfilled size rests as a ${e.side==='buy'?'bid':'ask'}.`}`:`The order does not cross the spread. It joins the ${e.side==='buy'?'bid':'ask'} queue at its price.`:'Press play or step forward to see orders arrive.';
  const all=e?.tape||[];$('trade-count').textContent=`${state.events.slice(0,state.index).reduce((n,x)=>n+x.trades.length,0)} FILLS`;
  $('tape').innerHTML=all.length?'':'<p class="empty">No trades yet. The first orders need a counterparty.</p>';
  for(const tr of [...all].reverse()){

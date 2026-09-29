@@ -1,0 +1,1 @@
+Orderbook Engine: price first, time next. Step through a tested C++20 matching simulation and see the FIFO fills, then read the measurements and their limits in the repo.

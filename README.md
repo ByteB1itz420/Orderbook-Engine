@@ -37,3 +37,16 @@ The C++ replay intentionally reports full-depth mismatches. This sample starts a
 The baseline uses `std::map` for sorted price levels, `std::deque` for FIFO within a level, and `std::unordered_map` to find the level by ID. Cancellation still scans that level. A standalone `OrderPool` is **not used** by the book, so there is **no zero-allocation hot-path claim**. No measured p50/p99/p99.9 numbers yet, no exchange parity, no market-impact or strategy-P&L claim. Planned optimization is judged against this readable baseline, not assumed faster.
 
 Historical messages are outbound observations: a visible execution reduces a resting order; it is not a new market order sent into the simulator. See [docs/semantics.md](docs/semantics.md) and [docs/walkthrough.md](docs/walkthrough.md) for the why.
+
+## Video walkthrough
+
+[Watch the 20-second demo video](brag-output/brag.mp4) ([poster](brag-output/brag.jpg)). It shows the real deployed explorer at event 5 (queued orders), event 8 (a crossing buy fills 20 shares from maker #103, then 7 from maker #105 at the resting price), and event 15 (the end of the synthetic trace). The video has no spoken tutorial; use [the plain-language walkthrough](docs/walkthrough.md) and [the measured report](REPORT.md) to teach the design and its limits. The browser is a visualization of a C++-checked trace, not a live market feed. [Video source and provenance](brag-output/MEDIA.md).
+
+### What to explain in an interview
+
+1. A bid is a willingness to buy; an ask is a willingness to sell. A marketable buy takes the cheapest ask first. At one price, the first resting order is filled first.
+2. `OrderBook` groups orders by price and uses FIFO queues. An ID lookup locates a resting order for cancellation; the readable baseline scans that price-level queue. The separate bounded `CompactBook` alternative uses stable slots and links but has a narrower contract. It is not simply "the fast version": our measured add and match were slower on the agent host.
+3. The browser's synthetic incoming orders cause simulated fills. Historical LOBSTER messages are observations of book changes. Applying a historical execution as a new incoming order would double-count the trade.
+4. The official sample comparison checks eligible same-price displayed-size changes, not complete book reconstruction from an unknown start. Read the exact denominators and exclusions in [REPORT.md](REPORT.md).
+
+This is a portfolio demonstration and learning project, not financial software for production use. Benchmark results in this repo are from an agent host, not Ayush's laptop; allocation instrumentation, wider contract parity, hardware reruns, and Ayush's own rehearsal remain open.
